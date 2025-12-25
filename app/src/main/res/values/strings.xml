@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name">YUIKA RENTCOS</string>
+
+    <!-- buat login dan register -->
+    <string name="login_welcome">Welcome Back!</string>
+    <string name="login_subtitle">Login to your Yuika Rentcos account</string>
+    <string name="label_remember_me">Remember me</string>
+    <string name="label_forgot_password">Forgot Password?</string>
+    <string name="btn_masuk">Masuk</string>
+    <string name="text_or_continue">OR CONTINUE WITH</string>
+    <string name="btn_google">Google</string>
+    <string name="btn_facebook">Facebook</string>
+    <string name="text_no_account">"Don't have an account? "</string>
+    <string name="welcome_back">Welcome Back!</string>
+    <string name="login_to_your_yuika_rentcos_account">Login to your Yuika Rentcos account</string>
+    <string name="email_address">Email Address</string>
+    <string name="password">Password</string>
+    <string name="remember_me">Remember me</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="masuk">Masuk</string>
+    <string name="or_continue_with">OR CONTINUE WITH</string>
+    <string name="google">Google</string>
+    <string name="facebook">Facebook</string>
+    <string name="don_t_have_an_account">Don\'t have an account?</string>
+    <string name="daftar">Daftar</string>
+    <string name="back">Kembali</string>
+    <string name="yuika_rentcos">Yuika Rentcos</string>
+    <string name="title_join_fun">Join the Fun</string>
+    <string name="subtitle_join_fun">Start renting your dream cosplay costumes today.</string>
+    <string name="label_fullname">Full Name</string>
+    <string name="hint_fullname">Enter your full name</string>
+    <string name="label_username">Username</string>
+    <string name="hint_username">Choose a username</string>
+    <string name="label_email">Email</string>
+    <string name="hint_email">hello@example.com</string>
+    <string name="label_password">Password</string>
+    <string name="hint_password">Create a password</string>
+    <string name="label_confirm_password">Confirm Password</string>
+    <string name="hint_confirm_password">Re-enter password</string>
+    <string name="btn_daftar">Daftar</string>
+    <string name="text_or_register">OR REGISTER WITH</string>
+    <string name="text_google_g">G</string>
+    <string name="text_already_have_account">"Already have an account? "</string>
+    <string name="text_login">Log In</string>
+    <string name="desc_icon_cloth">Ikon Baju</string>
+    <string name="desc_icon_laptop">Register with Laptop</string>
+</resources>
