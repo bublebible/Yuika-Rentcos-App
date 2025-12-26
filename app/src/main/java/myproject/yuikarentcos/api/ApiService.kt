@@ -1,13 +1,10 @@
 package myproject.yuikarentcos.api
 
-import myproject.yuikarentcos.model.*
+
 import retrofit2.Call
-import retrofit2.http.*
+import retrofit2.http.GET
 
-interface ApiService {
-    @POST("login")
-    fun login(@Body user: User): Call<ApiResponse<User>>
-
-    @GET("kostum")
-    fun getKostum(): Call<ApiResponse<List<Kostum>>>
+interface ApiService {// Contoh endpoint dummy
+    @GET("test")
+    fun testConnection(): Call<Void>
 }

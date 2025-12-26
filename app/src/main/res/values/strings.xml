@@ -44,4 +44,8 @@
     <string name="text_login">Log In</string>
     <string name="desc_icon_cloth">Ikon Baju</string>
     <string name="desc_icon_laptop">Register with Laptop</string>
+    <string name="foto_kostum">Foto Kostum</string>
+    <string name="nama_kostum">Nama Kostum</string>
+    <string name="rp_100_000">Rp 100.000</string>
+    <string name="available">Available</string>
 </resources>

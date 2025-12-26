@@ -3,65 +3,54 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="8dp"
+    android:layout_margin="8dp"
     app:cardCornerRadius="12dp"
-    app:cardElevation="4dp"
-    app:cardBackgroundColor="@android:color/white">
+    app:cardElevation="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:padding="12dp">
 
-        <androidx.cardview.widget.CardView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="0dp">
-            <ImageView
-                android:id="@+id/img_item_photo"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:src="@drawable/ic_launcher_background"
-                android:scaleType="centerCrop"/>
-        </androidx.cardview.widget.CardView>
+        <ImageView
+            android:id="@+id/img_item_photo"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_launcher_background"
+            android:contentDescription="@string/foto_kostum"/>
+
+        <TextView
+            android:id="@+id/tv_item_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/nama_kostum"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:orientation="vertical"
-            android:layout_gravity="center_vertical">
-
-            <TextView
-                android:id="@+id/tv_item_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Nama Karakter"
-                android:textStyle="bold"
-                android:textSize="16sp"
-                android:textColor="#000000"/>
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
 
             <TextView
                 android:id="@+id/tv_item_price"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="Rp 150.000"
-                android:textColor="#E91E63"
-                android:layout_marginTop="4dp"/>
+                android:text="@string/rp_100_000"
+                android:textColor="#4CAF50"/>
 
             <TextView
                 android:id="@+id/tv_item_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ready"
+                android:text="@string/available"
                 android:textSize="12sp"
-                android:background="#E0F2F1"
-                android:textColor="#00695C"
-                android:paddingHorizontal="8dp"
-                android:layout_marginTop="4dp"/>
+                android:textStyle="italic"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
