@@ -100,16 +100,17 @@ class RegisterActivity : ComponentActivity() {
 }
 
 // --- DEFINE COLORS ---
-val PurplePrimary = Color(0xFF673AB7) // Warna ungu tombol/icon
-val PurpleSoftBgStart = Color(0xFFF3E5F5) // Warna gradasi awal
-val PurpleSoftBgEnd = Color(0xFFD1C4E9)   // Warna gradasi akhir
-val HeaderBg = Color(0xFFD5C1E7)          // Warna background header
-// Warna Level Password
-val StrengthWeak = Color(0xFFE53935)   // Merah (Level 1)
-val StrengthFair = Color(0xFFFFB300)   // Kuning (Level 2)
-val StrengthGood = Color(0xFF43A047)   // Hijau (Level 3)
-val StrengthStrong = Color(0xFF1B5E20) // Hijau Tua (Level 4)
-val StrengthNone = Color(0xFFE0E0E0)   // Abu-abu (Kosong)
+private val PurplePrimary = Color(0xFF673AB7)
+private val PurpleSoftBgStart = Color(0xFFF3E5F5)
+private val PurpleSoftBgEnd = Color(0xFFD1C4E9)
+private val HeaderBg = Color(0xFFD5C1E7)
+
+// Warna Level Password (INI JUGA DI PRIVATE)
+private val StrengthWeak = Color(0xFFE53935)
+private val StrengthFair = Color(0xFFFFB300)
+private val StrengthGood = Color(0xFF43A047)
+private val StrengthStrong = Color(0xFF1B5E20)
+private val StrengthNone = Color(0xFFE0E0E0)
 
 @Composable
 fun RegisterScreen(

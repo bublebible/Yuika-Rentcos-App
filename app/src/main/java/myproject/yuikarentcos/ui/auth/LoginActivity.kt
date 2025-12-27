@@ -166,11 +166,11 @@ class LoginActivity : ComponentActivity() {
     }
 }
 
-val PurplePrimary = Color(0xFF673AB7)
-val PurpleSoftBgStart = Color(0xFFF3E5F5)
-val PurpleSoftBgEnd = Color(0xFFD1C4E9)
-val DarkText = Color(0xFF111827)
-val GrayText = Color(0xFF6B7280)
+private val PurplePrimary = Color(0xFF673AB7)
+private val PurpleSoftBgStart = Color(0xFFF3E5F5)
+private val PurpleSoftBgEnd = Color(0xFFD1C4E9)
+private val DarkText = Color(0xFF111827)
+private val GrayText = Color(0xFF6B7280)
 
 @Composable
 fun LoginScreen(
@@ -184,7 +184,11 @@ fun LoginScreen(
     var isRemembered by remember { mutableStateOf(false) }
 
     val backgroundBrush = Brush.linearGradient(
-        colors = listOf(PurpleSoftBgStart, Color(0xFFE1BEE7), PurpleSoftBgEnd),
+        colors = listOf(
+            PurpleSoftBgStart,
+            Color(0xFFE1BEE7),
+            PurpleSoftBgEnd
+        ),
         start = Offset(0f, 0f),
         end = Offset(1000f, 1000f)
     )
