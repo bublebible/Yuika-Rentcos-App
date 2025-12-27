@@ -48,4 +48,6 @@
     <string name="nama_kostum">Nama Kostum</string>
     <string name="rp_100_000">Rp 100.000</string>
     <string name="available">Available</string>
+
+    <string name="default_web_client_id">178733440982-evl29lv1jpq0bt28fhm8fhju87phti6d.apps.googleusercontent.com</string>
 </resources>

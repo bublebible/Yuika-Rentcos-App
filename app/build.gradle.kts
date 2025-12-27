@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+
+    // Plugin wajib agar Firebase terbaca
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -45,7 +48,6 @@ android {
     }
 
     composeOptions {
-        // Kotlin 1.9.24 pasangannya 1.5.14
         kotlinCompilerExtensionVersion = "1.5.14"
     }
 
@@ -57,7 +59,7 @@ android {
 }
 
 dependencies {
-    // --- CORE ---
+    // --- CORE & LIFECYCLE ---
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.activity:activity-compose:1.9.1")
@@ -70,19 +72,33 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // --- XML CLASSIC ---
+    // --- XML CLASSIC (Login/Admin) ---
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
-    // --- NETWORKING (DITULIS LENGKAP BIAR TIDAK ERROR LAGI) ---
+    // --- NETWORKING (Retrofit & OkHttp) ---
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // --- GAMBAR ---
+    // --- GAMBAR (Glide) ---
     implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    // --- FIREBASE (LENGKAP) ---
+    // BOM: Biar versi semua firebase seragam
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+
+    // Analytics: Buat ngecek aplikasi aktif
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Auth: Buat Login/Register (Email & Password)
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+
+    // Firestore: Buat Database (Simpan data rental) 
+    implementation("com.google.firebase:firebase-firestore")
 
     // --- TESTING ---
     testImplementation("junit:junit:4.13.2")

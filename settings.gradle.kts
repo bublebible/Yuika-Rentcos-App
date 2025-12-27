@@ -1,5 +1,7 @@
+// File: settings.gradle.kts
 pluginManagement {
     repositories {
+        // Alamat download plugin Google:
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -19,6 +21,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "YUIKA RENTCOS"
+rootProject.name = "YuiKarenTcos"
 include(":app")
- 

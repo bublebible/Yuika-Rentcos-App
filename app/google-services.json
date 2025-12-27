@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "178733440982",
+    "project_id": "yuikarentcosapp",
+    "storage_bucket": "yuikarentcosapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:178733440982:android:e0445cb14a1b522fd48e77",
+        "android_client_info": {
+          "package_name": "myproject.yuikarentcos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "178733440982-s6v4npel5q6j0en97bj7g9gl1tnbdvm6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "myproject.yuikarentcos",
+            "certificate_hash": "f9bda3b85d43cd173774d4f073d5b6e8a63631b7"
+          }
+        },
+        {
+          "client_id": "178733440982-evl29lv1jpq0bt28fhm8fhju87phti6d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBA1mo8OrIqbit_c4olNLn1NlYkGkvrz_c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "178733440982-evl29lv1jpq0bt28fhm8fhju87phti6d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
