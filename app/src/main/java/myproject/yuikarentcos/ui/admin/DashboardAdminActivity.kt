@@ -1,5 +1,6 @@
 package myproject.yuikarentcos.ui.admin
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,9 +10,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,19 +31,17 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// --- DEFINISI WARNA ---
-val PinkPrimary = Color(0xFFEC4899)
-val TextDark = Color(0xFF101922)
-val GlassWhite = Color.White.copy(alpha = 0.7f) // Efek Kaca
+import myproject.yuikarentcos.ui.GlassWhite
+import myproject.yuikarentcos.ui.PinkPrimary
+import myproject.yuikarentcos.ui.TextDark
 
 class DashboardAdminActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // PERBAIKAN: Memanggil DashboardScreen agar tidak warning "never used"
         setContent {
             DashboardScreen()
         }
@@ -64,18 +60,12 @@ fun DashboardScreen() {
                 )
             )
     ) {
-        // Logika Responsif (HP vs Desktop)
-        BoxWithConstraints {
-            if (maxWidth < 600.dp) {
-                MobileDashboard()
-            } else {
-                DesktopDashboard()
-            }
-        }
+        // Langsung panggil layout Mobile (Desktop dihapus)
+        MobileDashboard()
     }
 }
 
-// ================= LAYOUT HP (MOBILE) =================
+// ================= LAYOUT UTAMA =================
 @Composable
 fun MobileDashboard() {
     Scaffold(
@@ -111,39 +101,6 @@ fun MobileDashboard() {
     }
 }
 
-// ================= LAYOUT DESKTOP/TABLET =================
-@Composable
-fun DesktopDashboard() {
-    Row(modifier = Modifier.fillMaxSize()) {
-        NavigationRail(
-            containerColor = GlassWhite,
-            modifier = Modifier.fillMaxHeight()
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-            NavigationRailItem(selected = true, onClick = {}, icon = { Icon(Icons.Default.Dashboard, null, tint = PinkPrimary) }, label = { Text("Home") })
-            NavigationRailItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.Search, null) }, label = { Text("Search") })
-            NavigationRailItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.Mail, null) }, label = { Text("Inbox") })
-            NavigationRailItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
-        }
-
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 320.dp),
-            contentPadding = PaddingValues(24.dp),
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            item(span = { GridItemSpan(maxLineSpan) }) { HeaderSection() }
-            item(span = { GridItemSpan(maxLineSpan) }) { OverviewSection() }
-
-            item { RevenueChart() }
-            item { ManagementSection() }
-
-            item(span = { GridItemSpan(maxLineSpan) }) { RecentActivitySection() }
-        }
-    }
-}
-
 // ================= KOMPONEN UI =================
 
 @Composable
@@ -167,7 +124,7 @@ fun HeaderSection() {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text("ADMIN PORTAL", style = MaterialTheme.typography.labelSmall, color = PinkPrimary, fontWeight = FontWeight.Bold)
-                Text("Yuika Rentcos", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDark)
+                Text("Yuika Rentcos", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color  = TextDark)
             }
         }
 
@@ -198,11 +155,12 @@ fun OverviewSection() {
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
+                // UBAH DISINI: Total Orders -> Total Pendapatan
                 StatCard(
-                    title = "TOTAL ORDERS",
-                    value = "1,240",
-                    percent = "12%",
-                    icon = Icons.Default.ShoppingBag,
+                    title = "TOTAL PENDAPATAN",
+                    value = "Rp 12.5jt", // Contoh nilai rupiah
+                    percent = "+15%",
+                    icon = Icons.Default.MonetizationOn, // Ganti icon jadi uang
                     color = PinkPrimary,
                     isGlass = true
                 )
@@ -316,41 +274,101 @@ fun RevenueChart() {
 
 @Composable
 fun ManagementSection() {
+    val context = LocalContext.current // Butuh ini untuk pindah halaman
+
     Column {
         SectionTitle(title = "Management", color = Color(0xFF6366F1))
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                // PERBAIKAN: Menggunakan Icons.AutoMirrored.Filled.Assignment
-                ManagementCard(title = "Inventory", sub = "1,204 Items", icon = Icons.Default.Checkroom, color = Color(0xFF6366F1), modifier = Modifier.weight(1f))
-                ManagementCard(title = "Orders", sub = "8 Pending", icon = Icons.AutoMirrored.Filled.Assignment, color = Color(0xFF0D9488), modifier = Modifier.weight(1f))
+                // LOGIKA PINDAH KE INVENTORY & WARNA PINK
+                ManagementCard(
+                    title = "Inventory",
+                    sub = "1,204 Items",
+                    icon = Icons.Default.Checkroom,
+                    initialColor = Color(0xFF6366F1), // Warna awal ungu
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        // Pindah ke SearchActivity (Halaman Inventory)
+                        context.startActivity(Intent(context, SearchActivity::class.java))
+                    }
+                )
+
+                ManagementCard(
+                    title = "Orders",
+                    sub = "8 Pending",
+                    icon = Icons.AutoMirrored.Filled.Assignment,
+                    initialColor = Color(0xFF0D9488),
+                    modifier = Modifier.weight(1f),
+                    onClick = { /* TODO: Pindah ke Orders */ }
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                ManagementCard(title = "Reports", sub = "Analytics", icon = Icons.Default.BarChart, color = Color(0xFF9333EA), modifier = Modifier.weight(1f))
-                ManagementCard(title = "Content", sub = "Banners", icon = Icons.Default.WebStories, color = PinkPrimary, modifier = Modifier.weight(1f))
+                ManagementCard(
+                    title = "Reports",
+                    sub = "Analytics",
+                    icon = Icons.Default.BarChart,
+                    initialColor = Color(0xFF9333EA),
+                    modifier = Modifier.weight(1f),
+                    onClick = { /* TODO: Pindah ke Reports */ }
+                )
+                ManagementCard(
+                    title = "Content",
+                    sub = "Banners",
+                    icon = Icons.Default.WebStories,
+                    initialColor = PinkPrimary,
+                    modifier = Modifier.weight(1f),
+                    onClick = { /* TODO: Pindah ke Content */ }
+                )
             }
         }
     }
 }
 
 @Composable
-fun ManagementCard(title: String, sub: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
+fun ManagementCard(
+    title: String,
+    sub: String,
+    icon: ImageVector,
+    initialColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    // State untuk mendeteksi apakah kartu sedang dipilih/diklik
+    var isSelected by remember { mutableStateOf(false) }
+
+    // Jika dipilih, background jadi PinkPrimary, jika tidak kembali ke GlassWhite
+    val backgroundColor = if (isSelected) PinkPrimary else GlassWhite
+    val contentColor = if (isSelected) Color.White else TextDark
+    val iconTint = if (isSelected) Color.White else initialColor
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(32.dp))
-            .background(GlassWhite)
+            .background(backgroundColor)
             .border(1.dp, Color.White, RoundedCornerShape(32.dp))
-            .clickable { } // PERBAIKAN: Fungsi clickable sudah dikenali
+            .clickable {
+                isSelected = !isSelected // Toggle warna jadi pink
+                onClick() // Jalankan aksi (pindah halaman dll)
+            }
             .padding(24.dp)
     ) {
-        Box(Modifier.size(56.dp).background(color.copy(0.1f), RoundedCornerShape(20.dp)), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(32.dp))
+        Box(
+            Modifier
+                .size(56.dp)
+                .background(
+                    if (isSelected) Color.White.copy(0.2f) else initialColor.copy(0.1f),
+                    RoundedCornerShape(20.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = iconTint, modifier = Modifier.size(32.dp))
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Text(sub, fontSize = 10.sp, color = Color.Gray)
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = contentColor)
+        Text(sub, fontSize = 10.sp, color = if (isSelected) Color.White.copy(0.8f) else Color.Gray)
     }
 }
 
@@ -360,7 +378,6 @@ fun RecentActivitySection() {
         SectionTitle(title = "Recent Activity", color = TextDark)
         Spacer(modifier = Modifier.height(16.dp))
 
-        // PERBAIKAN: Menggunakan Icons.AutoMirrored.Filled.KeyboardReturn
         ActivityItem(title = "Miku Wig returned", sub = "User A • 2 mins ago", status = "Processed", icon = Icons.AutoMirrored.Filled.KeyboardReturn, color = PinkPrimary)
         Spacer(modifier = Modifier.height(12.dp))
         ActivityItem(title = "New Order #2841", sub = "Total: $120 • 15m ago", status = "Pending", icon = Icons.Default.Inventory2, color = Color(0xFFF97316))

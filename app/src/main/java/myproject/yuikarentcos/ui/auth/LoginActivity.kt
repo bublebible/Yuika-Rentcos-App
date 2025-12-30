@@ -43,6 +43,11 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import myproject.yuikarentcos.MainActivity
 import myproject.yuikarentcos.R
+import myproject.yuikarentcos.ui.PurplePrimary
+import myproject.yuikarentcos.ui.PurpleSoftBgEnd
+import myproject.yuikarentcos.ui.PurpleSoftBgStart
+import myproject.yuikarentcos.ui.TextDark
+import myproject.yuikarentcos.ui.TextGray
 import myproject.yuikarentcos.ui.admin.DashboardAdminActivity
 
 class LoginActivity : ComponentActivity() {
@@ -166,11 +171,6 @@ class LoginActivity : ComponentActivity() {
     }
 }
 
-private val PurplePrimary = Color(0xFF673AB7)
-private val PurpleSoftBgStart = Color(0xFFF3E5F5)
-private val PurpleSoftBgEnd = Color(0xFFD1C4E9)
-private val DarkText = Color(0xFF111827)
-private val GrayText = Color(0xFF6B7280)
 
 @Composable
 fun LoginScreen(
@@ -212,8 +212,8 @@ fun LoginScreen(
                     Icon(Icons.Default.Checkroom, "Logo", tint = Color.White, modifier = Modifier.size(56.dp).rotate(-3f))
                 }
             }
-            Text("Welcome Back", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = DarkText, modifier = Modifier.padding(top = 24.dp))
-            Text("Login to your Yuika RentCos account", fontSize = 14.sp, color = GrayText, modifier = Modifier.padding(top = 4.dp, bottom = 40.dp))
+            Text("Welcome Back", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(top = 24.dp))
+            Text("Login to your Yuika RentCos account", fontSize = 14.sp, color = TextGray, modifier = Modifier.padding(top = 4.dp, bottom = 40.dp))
 
             CustomLoginInput(email, { email = it }, "Email Address", Icons.Default.Email, keyboardType = KeyboardType.Email)
             Spacer(modifier = Modifier.height(20.dp))
@@ -222,7 +222,7 @@ fun LoginScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Checkbox(checked = isRemembered, onCheckedChange = { isRemembered = it }, colors = CheckboxDefaults.colors(checkedColor = PurplePrimary))
-                Text("Remember me", fontSize = 12.sp, color = GrayText, modifier = Modifier.weight(1f))
+                Text("Remember me", fontSize = 12.sp, color = TextGray, modifier = Modifier.weight(1f))
                 Text("Forgot Password?", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PurplePrimary, modifier = Modifier.clickable { onForgotPassClick() })
             }
 
@@ -254,7 +254,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Don't have an account? ", fontSize = 14.sp, color = GrayText)
+                Text("Don't have an account? ", fontSize = 14.sp, color = TextGray)
                 Text("Daftar", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PurplePrimary, modifier = Modifier.clickable { onRegisterClick() })
             }
 

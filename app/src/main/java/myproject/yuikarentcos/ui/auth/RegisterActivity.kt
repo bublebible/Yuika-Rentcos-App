@@ -36,6 +36,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import myproject.yuikarentcos.ui.HeaderBg
+import myproject.yuikarentcos.ui.PurplePrimary
+import myproject.yuikarentcos.ui.PurpleSoftBgEnd
+import myproject.yuikarentcos.ui.PurpleSoftBgStart
+import myproject.yuikarentcos.ui.StrengthFair
+import myproject.yuikarentcos.ui.StrengthGood
+import myproject.yuikarentcos.ui.StrengthNone
+import myproject.yuikarentcos.ui.StrengthStrong
+import myproject.yuikarentcos.ui.StrengthWeak
 
 
 class RegisterActivity : ComponentActivity() {
@@ -99,18 +108,7 @@ class RegisterActivity : ComponentActivity() {
     }
 }
 
-// --- DEFINE COLORS ---
-private val PurplePrimary = Color(0xFF673AB7)
-private val PurpleSoftBgStart = Color(0xFFF3E5F5)
-private val PurpleSoftBgEnd = Color(0xFFD1C4E9)
-private val HeaderBg = Color(0xFFD5C1E7)
 
-// Warna Level Password (INI JUGA DI PRIVATE)
-private val StrengthWeak = Color(0xFFE53935)
-private val StrengthFair = Color(0xFFFFB300)
-private val StrengthGood = Color(0xFF43A047)
-private val StrengthStrong = Color(0xFF1B5E20)
-private val StrengthNone = Color(0xFFE0E0E0)
 
 @Composable
 fun RegisterScreen(
