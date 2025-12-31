@@ -71,15 +71,7 @@ fun MobileDashboard() {
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
-            NavigationBar(
-                containerColor = GlassWhite,
-                modifier = Modifier.border(1.dp, Color.White.copy(alpha=0.5f))
-            ) {
-                NavigationBarItem(selected = true, onClick = {}, icon = { Icon(Icons.Default.Dashboard, null, tint = PinkPrimary) }, label = { Text("Home", color = PinkPrimary) })
-                NavigationBarItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.Search, null, tint = Color.Gray) }, label = { Text("Search") })
-                NavigationBarItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.Mail, null, tint = Color.Gray) }, label = { Text("Inbox") })
-                NavigationBarItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.Settings, null, tint = Color.Gray) }, label = { Text("Settings") })
-            }
+            AdminBottomNavBar(currentTab = "Home")
         }
     ) { padding ->
         Column(
@@ -291,7 +283,7 @@ fun ManagementSection() {
                     modifier = Modifier.weight(1f),
                     onClick = {
                         // Pindah ke SearchActivity (Halaman Inventory)
-                        context.startActivity(Intent(context, SearchActivity::class.java))
+                        context.startActivity(Intent(context, InventoryActivity::class.java))
                     }
                 )
 

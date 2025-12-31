@@ -26,9 +26,12 @@
 
         <activity android:name=".ui.auth.LoginActivity" android:exported="false" />
         <activity android:name=".ui.auth.RegisterActivity" android:exported="false" />
+
         <activity android:name=".ui.admin.DashboardAdminActivity" android:exported="false" />
 
-        <activity android:name=".ui.admin.SearchActivity" android:exported="false" />
+        <activity android:name=".ui.admin.InventoryActivity" android:exported="false" />
+
+        <activity android:name=".ui.admin.DetailInventoryActivity" android:exported="false" />
 
     </application>
 
