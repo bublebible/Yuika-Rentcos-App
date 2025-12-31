@@ -34,12 +34,10 @@ import myproject.yuikarentcos.ui.PurplePrimary
 import myproject.yuikarentcos.ui.PurpleSoftBgEnd
 import myproject.yuikarentcos.ui.PurpleSoftBgStart
 
-
 class InventoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // Panggil Screen tanpa parameter aneh-aneh
             InventoryScreen()
         }
     }
@@ -152,103 +150,110 @@ fun InventoryScreen() {
         categoryInput = item.category; statusInput = item.status; showDialog = true
     }
 
-    // --- UI ---
+    // --- UI UTAMA (DIUBAH DISINI: HAPUS SCAFFOLD) ---
     val backgroundBrush = Brush.linearGradient(
         colors = listOf(PurpleSoftBgStart, Color(0xFFE1BEE7), PurpleSoftBgEnd),
         start = Offset(0f, 0f), end = Offset(1000f, 1000f)
     )
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { openAddDialog() },
-                containerColor = Color(0xFFFF80AB),
-                contentColor = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.padding(bottom = 60.dp)
-            ) { Icon(Icons.Default.Add, "Add") }
-        },
-        floatingActionButtonPosition = FabPosition.End,
-        bottomBar = {
-            // Navbar pintar dipanggil disini
-            AdminBottomNavBar(currentTab = "Inventory")
-        }
-    ) { padding ->
-        Box(Modifier.fillMaxSize().background(backgroundBrush).padding(padding)) {
-            Column(Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
-                Spacer(Modifier.height(24.dp))
-                Text("Inventory", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF111827), modifier = Modifier.padding(bottom = 16.dp))
+    // Gunakan Box sebagai root, bukan Scaffold
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundBrush)
+    ) {
+        // 1. KONTEN UTAMA
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+        ) {
+            Spacer(Modifier.height(24.dp))
+            Text("Inventory", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF111827), modifier = Modifier.padding(bottom = 16.dp))
 
-                SearchBar(searchQuery) { searchQuery = it }
-                Spacer(Modifier.height(16.dp))
+            SearchBar(searchQuery) { searchQuery = it }
+            Spacer(Modifier.height(16.dp))
 
-                CategoryFilter(listOf("All", "Costume", "Wig", "Shoes", "Additional"), selectedCategory) { selectedCategory = it }
-                Spacer(Modifier.height(16.dp))
+            CategoryFilter(listOf("All", "Costume", "Wig", "Shoes", "Additional"), selectedCategory) { selectedCategory = it }
+            Spacer(Modifier.height(16.dp))
 
-                if (isLoading) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PurplePrimary) }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = 80.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(filteredItems) { item ->
-                            InventoryItemCard(
-                                item = item,
-                                onEditClick = { openEditDialog(item) },
-                                onDeleteClick = { deleteItem(item.id) },
-                                onCardClick = {
-                                    val intent = Intent(context, DetailInventoryActivity::class.java).apply {
-                                        putExtra("NAME", item.name)
-                                        putExtra("SERIES", item.series)
-                                        putExtra("CODE", item.code)
-                                        putExtra("CATEGORY", item.category)
-                                        putExtra("STATUS", item.status)
-                                        putExtra("DESCRIPTION", item.description)
-                                    }
-                                    context.startActivity(intent)
+            if (isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PurplePrimary) }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 100.dp), // Padding bawah agar tidak tertutup FAB
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(filteredItems) { item ->
+                        InventoryItemCard(
+                            item = item,
+                            onEditClick = { openEditDialog(item) },
+                            onDeleteClick = { deleteItem(item.id) },
+                            onCardClick = {
+                                val intent = Intent(context, DetailInventoryActivity::class.java).apply {
+                                    putExtra("NAME", item.name)
+                                    putExtra("SERIES", item.series)
+                                    putExtra("CODE", item.code)
+                                    putExtra("CATEGORY", item.category)
+                                    putExtra("STATUS", item.status)
+                                    putExtra("DESCRIPTION", item.description)
                                 }
-                            )
-                        }
+                                context.startActivity(intent)
+                            }
+                        )
                     }
                 }
             }
         }
 
-        if (showDialog) {
-            AlertDialog(
-                onDismissRequest = { showDialog = false },
-                title = { Text(if (isEditing) "Edit Item" else "Add Item") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(nameInput, { nameInput = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
-                        OutlinedTextField(seriesInput, { seriesInput = it }, label = { Text("Series") }, modifier = Modifier.fillMaxWidth())
-                        OutlinedTextField(codeInput, { codeInput = it }, label = { Text("Price (e.g. 45k)") }, modifier = Modifier.fillMaxWidth())
-                        OutlinedTextField(descriptionInput, { descriptionInput = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth().height(100.dp), maxLines = 3)
+        // 2. FLOATING ACTION BUTTON (Manual Position)
+        FloatingActionButton(
+            onClick = { openAddDialog() },
+            containerColor = Color(0xFFFF80AB),
+            contentColor = Color.White,
+            shape = CircleShape,
+            modifier = Modifier
+                .align(Alignment.BottomEnd) // Taruh di kanan bawah
+                .padding(bottom = 24.dp, end = 24.dp) // Margin dari pinggir
+        ) {
+            Icon(Icons.Default.Add, "Add")
+        }
+    }
 
-                        Text("Category:", fontSize = 12.sp, color = Color.Gray)
-                        Row(Modifier.horizontalScroll(rememberScrollState())) {
-                            listOf("Costume", "Wig", "Shoes", "Additional").forEach {
-                                FilterChip(selected = categoryInput == it, onClick = { categoryInput = it }, label = { Text(it) }, modifier = Modifier.padding(end = 4.dp))
-                            }
-                        }
+    // --- DIALOG ---
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(if (isEditing) "Edit Item" else "Add Item") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(nameInput, { nameInput = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(seriesInput, { seriesInput = it }, label = { Text("Series") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(codeInput, { codeInput = it }, label = { Text("Price (e.g. 45k)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(descriptionInput, { descriptionInput = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth().height(100.dp), maxLines = 3)
 
-                        Text("Status:", fontSize = 12.sp, color = Color.Gray)
-                        Row(Modifier.horizontalScroll(rememberScrollState())) {
-                            listOf("Ready", "Rented", "Laundry").forEach {
-                                FilterChip(selected = statusInput == it, onClick = { statusInput = it }, label = { Text(it) }, modifier = Modifier.padding(end = 4.dp))
-                            }
+                    Text("Category:", fontSize = 12.sp, color = Color.Gray)
+                    Row(Modifier.horizontalScroll(rememberScrollState())) {
+                        listOf("Costume", "Wig", "Shoes", "Additional").forEach {
+                            FilterChip(selected = categoryInput == it, onClick = { categoryInput = it }, label = { Text(it) }, modifier = Modifier.padding(end = 4.dp))
                         }
                     }
-                },
-                confirmButton = { Button(onClick = { saveData() }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) { Text("Save") } },
-                dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Cancel") } }
-            )
-        }
+
+                    Text("Status:", fontSize = 12.sp, color = Color.Gray)
+                    Row(Modifier.horizontalScroll(rememberScrollState())) {
+                        listOf("Ready", "Rented", "Laundry").forEach {
+                            FilterChip(selected = statusInput == it, onClick = { statusInput = it }, label = { Text(it) }, modifier = Modifier.padding(end = 4.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = { Button(onClick = { saveData() }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) { Text("Save") } },
+            dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Cancel") } }
+        )
     }
 }
 
-// --- COMPONENTS ---
+// --- COMPONENTS (TIDAK BERUBAH) ---
 @Composable
 fun InventoryItemCard(item: InventoryItem, onEditClick: () -> Unit, onDeleteClick: () -> Unit, onCardClick: () -> Unit) {
     val (statusColor, statusBg) = when (item.status) {

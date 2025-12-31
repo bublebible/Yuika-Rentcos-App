@@ -1,15 +1,17 @@
 package myproject.yuikarentcos.ui.admin
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,10 +33,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import myproject.yuikarentcos.ui.GlassWhite
 import myproject.yuikarentcos.ui.PinkPrimary
 import myproject.yuikarentcos.ui.TextDark
@@ -43,14 +45,54 @@ class DashboardAdminActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DashboardScreen()
+            MainAdminScreen()
         }
     }
 }
 
+// ================= LAYOUT UTAMA (PAGER HOST / GESER-GESER) =================
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun DashboardScreen() {
-    // Background Mesh Gradient
+fun MainAdminScreen() {
+    // 1. Setup Pager (4 Halaman: Home, Inventory, Content, Settings)
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val scope = rememberCoroutineScope()
+
+    Scaffold(
+        containerColor = Color.White,
+        bottomBar = {
+            // Navbar Pintar (Ikut Pager)
+            AdminBottomNavBar(
+                selectedIndex = pagerState.currentPage,
+                onItemSelected = { index ->
+                    scope.launch { pagerState.animateScrollToPage(index) }
+                }
+            )
+        }
+    ) { paddingValues ->
+        // 2. Konten Pager (Bisa Digeser / Swipe)
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) { page ->
+            when (page) {
+                0 -> DashboardContent(
+                    onNavigateToInventory = { scope.launch { pagerState.animateScrollToPage(1) } }
+                )
+                // Panggil InventoryScreen dari InventoryActivity.kt
+                1 -> InventoryScreen()
+                2 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Halaman Content (Coming Soon)") }
+                3 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Halaman Settings (Coming Soon)") }
+            }
+        }
+    }
+}
+
+// ================= KONTEN HALAMAN DASHBOARD =================
+@Composable
+fun DashboardContent(onNavigateToInventory: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -60,23 +102,9 @@ fun DashboardScreen() {
                 )
             )
     ) {
-        // Langsung panggil layout Mobile (Desktop dihapus)
-        MobileDashboard()
-    }
-}
-
-// ================= LAYOUT UTAMA =================
-@Composable
-fun MobileDashboard() {
-    Scaffold(
-        containerColor = Color.Transparent,
-        bottomBar = {
-            AdminBottomNavBar(currentTab = "Home")
-        }
-    ) { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp)
         ) {
@@ -86,7 +114,8 @@ fun MobileDashboard() {
             Spacer(modifier = Modifier.height(24.dp))
             RevenueChart()
             Spacer(modifier = Modifier.height(24.dp))
-            ManagementSection()
+            // Kirim fungsi geser ke ManagementSection
+            ManagementSection(onInventoryClick = onNavigateToInventory)
             Spacer(modifier = Modifier.height(24.dp))
             RecentActivitySection()
         }
@@ -147,12 +176,11 @@ fun OverviewSection() {
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
-                // UBAH DISINI: Total Orders -> Total Pendapatan
                 StatCard(
                     title = "TOTAL PENDAPATAN",
-                    value = "Rp 12.5jt", // Contoh nilai rupiah
+                    value = "Rp 12.5jt",
                     percent = "+15%",
-                    icon = Icons.Default.MonetizationOn, // Ganti icon jadi uang
+                    icon = Icons.Default.MonetizationOn,
                     color = PinkPrimary,
                     isGlass = true
                 )
@@ -265,26 +293,21 @@ fun RevenueChart() {
 }
 
 @Composable
-fun ManagementSection() {
-    val context = LocalContext.current // Butuh ini untuk pindah halaman
-
+fun ManagementSection(onInventoryClick: () -> Unit) {
     Column {
         SectionTitle(title = "Management", color = Color(0xFF6366F1))
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                // LOGIKA PINDAH KE INVENTORY & WARNA PINK
+                // LOGIKA BARU: KLIK INVENTORY MENGGESER PAGER
                 ManagementCard(
                     title = "Inventory",
                     sub = "1,204 Items",
                     icon = Icons.Default.Checkroom,
-                    initialColor = Color(0xFF6366F1), // Warna awal ungu
+                    initialColor = Color(0xFF6366F1),
                     modifier = Modifier.weight(1f),
-                    onClick = {
-                        // Pindah ke SearchActivity (Halaman Inventory)
-                        context.startActivity(Intent(context, InventoryActivity::class.java))
-                    }
+                    onClick = onInventoryClick // <--- INI PENTING BUAT GESER
                 )
 
                 ManagementCard(
@@ -330,7 +353,6 @@ fun ManagementCard(
     // State untuk mendeteksi apakah kartu sedang dipilih/diklik
     var isSelected by remember { mutableStateOf(false) }
 
-    // Jika dipilih, background jadi PinkPrimary, jika tidak kembali ke GlassWhite
     val backgroundColor = if (isSelected) PinkPrimary else GlassWhite
     val contentColor = if (isSelected) Color.White else TextDark
     val iconTint = if (isSelected) Color.White else initialColor
@@ -342,8 +364,8 @@ fun ManagementCard(
             .background(backgroundColor)
             .border(1.dp, Color.White, RoundedCornerShape(32.dp))
             .clickable {
-                isSelected = !isSelected // Toggle warna jadi pink
-                onClick() // Jalankan aksi (pindah halaman dll)
+                isSelected = !isSelected
+                onClick()
             }
             .padding(24.dp)
     ) {
