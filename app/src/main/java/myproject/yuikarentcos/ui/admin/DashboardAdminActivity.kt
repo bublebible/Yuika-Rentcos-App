@@ -40,6 +40,8 @@ import kotlinx.coroutines.launch
 import myproject.yuikarentcos.ui.GlassWhite
 import myproject.yuikarentcos.ui.PinkPrimary
 import myproject.yuikarentcos.ui.TextDark
+import myproject.yuikarentcos.ui.PurpleSoftBgStart
+import myproject.yuikarentcos.ui.PurpleSoftBgEnd
 
 class DashboardAdminActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,11 +52,11 @@ class DashboardAdminActivity : ComponentActivity() {
     }
 }
 
-// ================= LAYOUT UTAMA (PAGER HOST / GESER-GESER) =================
+// ================= LAYOUT UTAMA (PAGER HOST) =================
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainAdminScreen() {
-    // 1. Setup Pager (4 Halaman: Home, Inventory, Content, Settings)
+    // 1. Setup Pager (4 Halaman)
     val pagerState = rememberPagerState(pageCount = { 4 })
     val scope = rememberCoroutineScope()
 
@@ -70,7 +72,7 @@ fun MainAdminScreen() {
             )
         }
     ) { paddingValues ->
-        // 2. Konten Pager (Bisa Digeser / Swipe)
+        // 2. Konten Pager
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -81,7 +83,6 @@ fun MainAdminScreen() {
                 0 -> DashboardContent(
                     onNavigateToInventory = { scope.launch { pagerState.animateScrollToPage(1) } }
                 )
-                // Panggil InventoryScreen dari InventoryActivity.kt
                 1 -> InventoryScreen()
                 2 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Halaman Content (Coming Soon)") }
                 3 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Halaman Settings (Coming Soon)") }
@@ -93,14 +94,16 @@ fun MainAdminScreen() {
 // ================= KONTEN HALAMAN DASHBOARD =================
 @Composable
 fun DashboardContent(onNavigateToInventory: () -> Unit) {
+    val backgroundBrush = Brush.linearGradient(
+        colors = listOf(PurpleSoftBgStart, Color(0xFFE1BEE7), PurpleSoftBgEnd),
+        start = Offset(0f, 0f),
+        end = Offset(1000f, 1000f)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFFFDF2F8), Color(0xFFFCE7F3), Color(0xFFE0F2FE))
-                )
-            )
+            .background(brush = backgroundBrush) // Pakai brush ungu yang baru
     ) {
         Column(
             modifier = Modifier
@@ -300,14 +303,14 @@ fun ManagementSection(onInventoryClick: () -> Unit) {
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                // LOGIKA BARU: KLIK INVENTORY MENGGESER PAGER
+                // LOGIKA: KLIK INVENTORY MENGGESER PAGER
                 ManagementCard(
                     title = "Inventory",
                     sub = "1,204 Items",
                     icon = Icons.Default.Checkroom,
                     initialColor = Color(0xFF6366F1),
                     modifier = Modifier.weight(1f),
-                    onClick = onInventoryClick // <--- INI PENTING BUAT GESER
+                    onClick = onInventoryClick
                 )
 
                 ManagementCard(
@@ -350,9 +353,7 @@ fun ManagementCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    // State untuk mendeteksi apakah kartu sedang dipilih/diklik
     var isSelected by remember { mutableStateOf(false) }
-
     val backgroundColor = if (isSelected) PinkPrimary else GlassWhite
     val contentColor = if (isSelected) Color.White else TextDark
     val iconTint = if (isSelected) Color.White else initialColor
