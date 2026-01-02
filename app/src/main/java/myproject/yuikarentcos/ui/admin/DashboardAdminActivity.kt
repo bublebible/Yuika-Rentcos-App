@@ -72,7 +72,7 @@ fun MainAdminScreen() {
             )
         }
     ) { paddingValues ->
-        // 2. Konten Pager
+        // 2. Konten Pager (Bisa Digeser)
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -80,12 +80,18 @@ fun MainAdminScreen() {
                 .fillMaxSize()
         ) { page ->
             when (page) {
+                // Halaman 0: Dashboard Home
                 0 -> DashboardContent(
-                    onNavigateToInventory = { scope.launch { pagerState.animateScrollToPage(1) } }
+                    onNavigateToInventory = { scope.launch { pagerState.animateScrollToPage(1) } },
+                    onNavigateToContent = { scope.launch { pagerState.animateScrollToPage(2) } },
+                    onNavigateToSettings = { scope.launch { pagerState.animateScrollToPage(3) } }
                 )
+                // Halaman 1: Inventory
                 1 -> InventoryScreen()
-                2 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Halaman Content (Coming Soon)") }
-                3 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Halaman Settings (Coming Soon)") }
+                // Halaman 2: Content Manage
+                2 -> ContentManageScreen()
+                // Halaman 3: Settings
+                3 -> SettingsScreen()
             }
         }
     }
@@ -93,7 +99,11 @@ fun MainAdminScreen() {
 
 // ================= KONTEN HALAMAN DASHBOARD =================
 @Composable
-fun DashboardContent(onNavigateToInventory: () -> Unit) {
+fun DashboardContent(
+    onNavigateToInventory: () -> Unit,
+    onNavigateToContent: () -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
     val backgroundBrush = Brush.linearGradient(
         colors = listOf(PurpleSoftBgStart, Color(0xFFE1BEE7), PurpleSoftBgEnd),
         start = Offset(0f, 0f),
@@ -103,7 +113,7 @@ fun DashboardContent(onNavigateToInventory: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(brush = backgroundBrush) // Pakai brush ungu yang baru
+            .background(brush = backgroundBrush)
     ) {
         Column(
             modifier = Modifier
@@ -111,14 +121,21 @@ fun DashboardContent(onNavigateToInventory: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp)
         ) {
-            HeaderSection()
+            // HEADER (Kirim fungsi klik profil)
+            HeaderSection(onProfileClick = onNavigateToSettings)
+
             Spacer(modifier = Modifier.height(24.dp))
             OverviewSection()
             Spacer(modifier = Modifier.height(24.dp))
             RevenueChart()
             Spacer(modifier = Modifier.height(24.dp))
-            // Kirim fungsi geser ke ManagementSection
-            ManagementSection(onInventoryClick = onNavigateToInventory)
+
+            // MANAGEMENT (Kirim fungsi klik Inventory & Content)
+            ManagementSection(
+                onInventoryClick = onNavigateToInventory,
+                onContentClick = onNavigateToContent
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
             RecentActivitySection()
         }
@@ -128,19 +145,21 @@ fun DashboardContent(onNavigateToInventory: () -> Unit) {
 // ================= KOMPONEN UI =================
 
 @Composable
-fun HeaderSection() {
+fun HeaderSection(onProfileClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // FOTO PROFIL (Bisa Diklik -> Settings)
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(Color.Gray)
-                    .border(2.dp, Color.White, CircleShape),
+                    .border(2.dp, Color.White, CircleShape)
+                    .clickable { onProfileClick() }, // <--- INI NAVIGASINYA
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
@@ -296,14 +315,14 @@ fun RevenueChart() {
 }
 
 @Composable
-fun ManagementSection(onInventoryClick: () -> Unit) {
+fun ManagementSection(onInventoryClick: () -> Unit, onContentClick: () -> Unit) {
     Column {
         SectionTitle(title = "Management", color = Color(0xFF6366F1))
         Spacer(modifier = Modifier.height(16.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                // LOGIKA: KLIK INVENTORY MENGGESER PAGER
+                // CARD 1: INVENTORY (Page 1)
                 ManagementCard(
                     title = "Inventory",
                     sub = "1,204 Items",
@@ -313,6 +332,7 @@ fun ManagementSection(onInventoryClick: () -> Unit) {
                     onClick = onInventoryClick
                 )
 
+                // CARD 2: ORDERS (Belum ada page, jadi kosongin dulu)
                 ManagementCard(
                     title = "Orders",
                     sub = "8 Pending",
@@ -323,6 +343,7 @@ fun ManagementSection(onInventoryClick: () -> Unit) {
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                // CARD 3: REPORTS (Belum ada page)
                 ManagementCard(
                     title = "Reports",
                     sub = "Analytics",
@@ -331,13 +352,15 @@ fun ManagementSection(onInventoryClick: () -> Unit) {
                     modifier = Modifier.weight(1f),
                     onClick = { /* TODO: Pindah ke Reports */ }
                 )
+
+                // CARD 4: CONTENT (Page 2)
                 ManagementCard(
                     title = "Content",
                     sub = "Banners",
                     icon = Icons.Default.WebStories,
                     initialColor = PinkPrimary,
                     modifier = Modifier.weight(1f),
-                    onClick = { /* TODO: Pindah ke Content */ }
+                    onClick = onContentClick // <--- INI NAVIGASINYA
                 )
             }
         }

@@ -20,9 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage // <--- JANGAN LUPA LIBRARY COIL
 import myproject.yuikarentcos.ui.PurplePrimary
 import myproject.yuikarentcos.ui.PurpleSoftBgStart
 import myproject.yuikarentcos.ui.StatusLaundryBg
@@ -45,6 +47,7 @@ class DetailInventoryActivity : ComponentActivity() {
         val category = intent.getStringExtra("CATEGORY") ?: "Costume"
         val status = intent.getStringExtra("STATUS") ?: "Ready"
         val description = intent.getStringExtra("DESCRIPTION") ?: "Tidak ada deskripsi tambahan."
+        val imageUrl = intent.getStringExtra("IMAGE_URL") ?: "" // <--- AMBIL URL FOTO
 
         setContent {
             DetailScreen(
@@ -54,6 +57,7 @@ class DetailInventoryActivity : ComponentActivity() {
                 category = category,
                 status = status,
                 description = description,
+                imageUrl = imageUrl, // Kirim ke UI
                 onBackClick = { finish() }
             )
         }
@@ -68,15 +72,17 @@ fun DetailScreen(
     category: String,
     status: String,
     description: String,
+    imageUrl: String,
     onBackClick: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
-    // Tentukan Warna Status
+    // Tentukan Warna Status (Tambah Repair)
     val (statusColor, statusBg) = when (status) {
         "Ready" -> StatusReadyText to StatusReadyBg
         "Rented" -> PurplePrimary to StatusRentedBg
         "Laundry" -> StatusLaundryText to StatusLaundryBg
+        "Repair" -> Color(0xFFB91C1C) to Color(0xFFFEE2E2) // Merah
         else -> Color.Gray to Color.LightGray
     }
 
@@ -90,20 +96,37 @@ fun DetailScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp)
-                    .background(Color(0xFFE0E0E0)) // Abu-abu sebagai placeholder gambar
+                    .height(350.dp) // Sedikit dipertinggi biar lega
+                    .background(Color(0xFFF3F4F6))
             ) {
-                // Icon Besar di tengah gambar
-                Icon(
-                    imageVector = when(category) {
-                        "Wig" -> Icons.Default.Face
-                        "Shoes" -> Icons.Default.RollerSkating
-                        else -> Icons.Default.Checkroom
-                    },
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(100.dp).align(Alignment.Center)
-                )
+                // LOGIKA TAMPILAN GAMBAR
+                if (imageUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = "Detail Image",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Fallback Icon jika tidak ada gambar
+                    Icon(
+                        imageVector = when(category) {
+                            "Wig" -> Icons.Default.Face
+                            "Shoes" -> Icons.Default.RollerSkating
+                            else -> Icons.Default.Checkroom
+                        },
+                        contentDescription = null,
+                        tint = Color.Gray.copy(0.5f),
+                        modifier = Modifier.size(100.dp).align(Alignment.Center)
+                    )
+                }
+
+                // Gradient Hitam Tipis di Atas (Biar tombol back kelihatan jelas)
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp).background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(Color.Black.copy(0.4f), Color.Transparent)
+                    )
+                ))
 
                 // Tombol Back Floating
                 IconButton(
@@ -112,16 +135,16 @@ fun DetailScreen(
                         .padding(top = 48.dp, start = 16.dp)
                         .align(Alignment.TopStart)
                         .clip(CircleShape)
-                        .background(Color.White.copy(0.8f))
+                        .background(Color.White.copy(0.9f))
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.Black)
                 }
             }
 
             // --- B. KONTEN DETAIL (Sheet Melengkung) ---
             Column(
                 modifier = Modifier
-                    .offset(y = (-24).dp) // Efek menumpuk ke atas
+                    .offset(y = (-32).dp) // Efek menumpuk ke atas lebih dalam
                     .fillMaxSize()
                     .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
                     .background(Color.White)
@@ -148,7 +171,7 @@ fun DetailScreen(
                     }
                     Text(
                         text = code, // Harga Sewa
-                        fontSize = 20.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = PurplePrimary
                     )
@@ -197,7 +220,7 @@ fun DetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
-                    onClick = { /* TODO: Arahkan ke Edit Dialog lagi kalau mau */ },
+                    onClick = { /* TODO: Arahkan ke Edit Dialog */ },
                     modifier = Modifier.weight(1f).height(50.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3E5F5), contentColor = PurplePrimary),
                     shape = RoundedCornerShape(12.dp)

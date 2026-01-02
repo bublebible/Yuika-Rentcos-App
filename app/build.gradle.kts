@@ -85,10 +85,12 @@ dependencies {
 
     // --- GAMBAR (Glide) ---
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     // --- FIREBASE (LENGKAP) ---
     // BOM: Biar versi semua firebase seragam
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
 
     // Analytics: Buat ngecek aplikasi aktif
     implementation("com.google.firebase:firebase-analytics")
