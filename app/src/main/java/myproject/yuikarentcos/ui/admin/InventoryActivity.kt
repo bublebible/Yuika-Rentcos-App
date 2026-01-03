@@ -10,10 +10,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,12 +37,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage // Import Storage
+import com.google.firebase.storage.FirebaseStorage
 import myproject.yuikarentcos.ui.PurplePrimary
 import myproject.yuikarentcos.ui.PurpleSoftBgEnd
 import myproject.yuikarentcos.ui.PurpleSoftBgStart
-import java.util.UUID // Buat nama file unik
+import java.util.UUID
 
 class InventoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,7 +54,7 @@ class InventoryActivity : ComponentActivity() {
     }
 }
 
-// --- DATA MODEL ---
+// --- DATA MODEL (Support Banyak Foto) ---
 data class InventoryItem(
     val id: String = "",
     val name: String = "",
@@ -61,30 +63,29 @@ data class InventoryItem(
     val category: String = "Costume",
     val status: String = "Ready",
     val description: String = "",
-    val imageUrl: String = ""
+    val imageUrls: List<String> = emptyList() // List URL Foto
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryScreen() {
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance()
-    val storage = FirebaseStorage.getInstance() // Instance Storage
+    val storage = FirebaseStorage.getInstance()
 
     // --- STATE ---
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
-
     var inventoryList by remember { mutableStateOf<List<InventoryItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-
-    // State Loading pas Upload
     var isUploading by remember { mutableStateOf(false) }
 
+    // Dialog State
     var showDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     var currentEditingId by remember { mutableStateOf("") }
 
-    // Form States
+    // Form Input
     var nameInput by remember { mutableStateOf("") }
     var seriesInput by remember { mutableStateOf("") }
     var codeInput by remember { mutableStateOf("") }
@@ -92,28 +93,36 @@ fun InventoryScreen() {
     var statusInput by remember { mutableStateOf("Ready") }
     var descriptionInput by remember { mutableStateOf("") }
 
-    // Gambar
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var existingImageUrl by remember { mutableStateOf("") }
+    // State Gambar (Multiple)
+    var newImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var existingImageUrls by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    // Launcher Galeri
+    // State Dropdown Series
+    var expandedSeries by remember { mutableStateOf(false) }
+    val seriesOptions = listOf("Frieren", "Genshin Impact", "Honkai Star Rail", "Anime Lainnya")
+
+    // Launcher Galeri (Bisa pilih banyak)
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            selectedImageUri = uri
-        }
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        newImageUris = newImageUris + uris
     }
 
     // --- FETCH DATA ---
     LaunchedEffect(Unit) {
         db.collection("inventory").addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                isLoading = false
-                return@addSnapshotListener
-            }
+            if (e != null) { isLoading = false; return@addSnapshotListener }
             if (snapshot != null) {
                 val items = snapshot.documents.map { doc ->
+                    // Ambil list foto, kalau error/kosong ambil single foto lama
+                    val imgField = doc.get("imageUrls")
+                    val imgList = if (imgField is List<*>) {
+                        imgField.map { it.toString() }
+                    } else {
+                        val singleImg = doc.getString("imageUrl")
+                        if (singleImg.isNullOrEmpty()) emptyList() else listOf(singleImg)
+                    }
+
                     InventoryItem(
                         id = doc.id,
                         name = doc.getString("name") ?: "",
@@ -122,7 +131,7 @@ fun InventoryScreen() {
                         category = doc.getString("category") ?: "Costume",
                         status = doc.getString("status") ?: "Ready",
                         description = doc.getString("description") ?: "",
-                        imageUrl = doc.getString("imageUrl") ?: ""
+                        imageUrls = imgList
                     )
                 }
                 inventoryList = items
@@ -138,8 +147,8 @@ fun InventoryScreen() {
         categoryMatch && searchMatch
     }
 
-    // --- FUNGSI SAVE KE FIRESTORE (Database Text) ---
-    fun saveToFirestore(finalImageUrl: String) {
+    // --- SAVE LOGIC ---
+    fun saveToFirestore(finalImageUrls: List<String>) {
         val itemData = hashMapOf(
             "name" to nameInput,
             "series" to seriesInput,
@@ -147,67 +156,67 @@ fun InventoryScreen() {
             "category" to categoryInput,
             "status" to statusInput,
             "description" to descriptionInput,
-            "imageUrl" to finalImageUrl
+            "imageUrls" to finalImageUrls,
+            "imageUrl" to (finalImageUrls.firstOrNull() ?: "") // Backward compatibility
         )
 
-        if (isEditing) {
+        val task = if (isEditing) {
             db.collection("inventory").document(currentEditingId).update(itemData as Map<String, Any>)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "Item Updated!", Toast.LENGTH_SHORT).show()
-                    isUploading = false
-                    showDialog = false
-                }
         } else {
             db.collection("inventory").add(itemData)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "Item Added!", Toast.LENGTH_SHORT).show()
-                    isUploading = false
-                    showDialog = false
-                }
+        }
+
+        task.addOnSuccessListener {
+            Toast.makeText(context, if (isEditing) "Berhasil Diupdate!" else "Berhasil Ditambah!", Toast.LENGTH_SHORT).show()
+            isUploading = false
+            showDialog = false
+        }.addOnFailureListener {
+            isUploading = false
+            Toast.makeText(context, "Gagal: ${it.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // --- LOGIKA UPLOAD ---
     fun handleSave() {
         if (nameInput.isEmpty() || seriesInput.isEmpty() || codeInput.isEmpty()) {
-            Toast.makeText(context, "Mohon isi nama, series, dan harga", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Isi data wajib!", Toast.LENGTH_SHORT).show()
             return
         }
 
-        isUploading = true // Mulai Loading
+        isUploading = true
 
-        // KASUS 1: Ada Gambar Baru Dipilih dari Galeri
-        if (selectedImageUri != null) {
-            val fileName = "inventory/${UUID.randomUUID()}.jpg"
-            val ref = storage.reference.child(fileName)
+        if (newImageUris.isNotEmpty()) {
+            // Upload Foto Baru
+            val uploadTasks = newImageUris.map { uri ->
+                val ref = storage.reference.child("inventory/${UUID.randomUUID()}.jpg")
+                ref.putFile(uri).continueWithTask { task ->
+                    if (!task.isSuccessful) task.exception?.let { throw it }
+                    ref.downloadUrl
+                }
+            }
 
-            ref.putFile(selectedImageUri!!)
-                .addOnSuccessListener {
-                    // Upload Sukses, Ambil Link Downloadnya
-                    ref.downloadUrl.addOnSuccessListener { uri ->
-                        saveToFirestore(uri.toString())
-                    }
-                }
-                .addOnFailureListener {
-                    isUploading = false
-                    Toast.makeText(context, "Gagal Upload Gambar: ${it.message}", Toast.LENGTH_SHORT).show()
-                }
-        }
-        // KASUS 2: Tidak Ganti Gambar (Pake link lama)
-        else {
-            saveToFirestore(existingImageUrl)
+            Tasks.whenAllSuccess<Uri>(uploadTasks).addOnSuccessListener { results ->
+                val newUrls = results.map { it.toString() }
+                val combinedUrls = existingImageUrls + newUrls
+                saveToFirestore(combinedUrls)
+            }.addOnFailureListener {
+                isUploading = false
+                Toast.makeText(context, "Gagal Upload Foto", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            // Cuma simpan data teks
+            saveToFirestore(existingImageUrls)
         }
     }
 
     fun deleteItem(id: String) {
         db.collection("inventory").document(id).delete()
-            .addOnSuccessListener { Toast.makeText(context, "Deleted!", Toast.LENGTH_SHORT).show() }
+            .addOnSuccessListener { Toast.makeText(context, "Terhapus!", Toast.LENGTH_SHORT).show() }
     }
 
     fun openAddDialog() {
         isEditing = false
         nameInput = ""; seriesInput = ""; codeInput = ""; descriptionInput = ""
-        selectedImageUri = null; existingImageUrl = ""
+        newImageUris = emptyList(); existingImageUrls = emptyList()
         categoryInput = "Costume"; statusInput = "Ready"
         showDialog = true
     }
@@ -221,15 +230,12 @@ fun InventoryScreen() {
         descriptionInput = item.description
         categoryInput = item.category
         statusInput = item.status
-
-        // Simpan link gambar lama, tapi selectedUri null (karena belum pilih baru)
-        existingImageUrl = item.imageUrl
-        selectedImageUri = null
-
+        existingImageUrls = item.imageUrls
+        newImageUris = emptyList()
         showDialog = true
     }
 
-    // --- UI ---
+    // --- UI UTAMA ---
     val backgroundBrush = Brush.linearGradient(
         colors = listOf(PurpleSoftBgStart, Color(0xFFE1BEE7), PurpleSoftBgEnd),
         start = Offset(0f, 0f), end = Offset(1000f, 1000f)
@@ -266,7 +272,7 @@ fun InventoryScreen() {
                                     putExtra("CATEGORY", item.category)
                                     putExtra("STATUS", item.status)
                                     putExtra("DESCRIPTION", item.description)
-                                    putExtra("IMAGE_URL", item.imageUrl)
+                                    putExtra("IMAGE_URL", item.imageUrls.firstOrNull() ?: "")
                                 }
                                 context.startActivity(intent)
                             }
@@ -290,67 +296,81 @@ fun InventoryScreen() {
     // --- DIALOG ---
     if (showDialog) {
         AlertDialog(
-            onDismissRequest = { if (!isUploading) showDialog = false }, // Gak bisa tutup kalo lagi upload
+            onDismissRequest = { if (!isUploading) showDialog = false },
             title = { Text(if (isEditing) "Edit Item" else "Add Item") },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.verticalScroll(rememberScrollState())
                 ) {
-                    // --- PREVIEW & PICK IMAGE ---
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.LightGray.copy(0.3f))
-                            .clickable { galleryLauncher.launch("image/*") },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Logika Tampilan: Prioritas Gambar Baru -> Gambar Lama -> Icon Tambah
-                        if (selectedImageUri != null) {
-                            AsyncImage(
-                                model = selectedImageUri,
-                                contentDescription = "New Image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else if (existingImageUrl.isNotEmpty()) {
-                            AsyncImage(
-                                model = existingImageUrl,
-                                contentDescription = "Existing Image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.AddPhotoAlternate, null, tint = Color.Gray, modifier = Modifier.size(40.dp))
-                                Text("Tap to add photo", color = Color.Gray, fontSize = 12.sp)
+                    // Upload Area (Horizontal Scroll)
+                    Text("Photos (${existingImageUrls.size + newImageUris.size})", fontSize = 12.sp, color = Color.Gray)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.LightGray.copy(0.3f))
+                                    .clickable { galleryLauncher.launch("image/*") },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.AddPhotoAlternate, null, tint = Color.Gray)
                             }
                         }
-
-                        // Icon Edit Overlay
-                        Surface(
-                            color = Color.Black.copy(0.5f),
-                            shape = CircleShape,
-                            modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
-                        ) {
-                            Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.padding(6.dp).size(16.dp))
+                        items(existingImageUrls) { url ->
+                            AsyncImage(
+                                model = url, contentDescription = null, contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)).border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                            )
+                        }
+                        items(newImageUris) { uri ->
+                            AsyncImage(
+                                model = uri, contentDescription = null, contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)).border(2.dp, PurplePrimary, RoundedCornerShape(8.dp))
+                            )
                         }
                     }
 
-                    OutlinedTextField(nameInput, { nameInput = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(seriesInput, { seriesInput = it }, label = { Text("Series") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(codeInput, { codeInput = it }, label = { Text("Price (e.g. 45k)") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(descriptionInput, { descriptionInput = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth().height(100.dp), maxLines = 3)
+                    OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
 
+                    // Dropdown Series
+                    ExposedDropdownMenuBox(
+                        expanded = expandedSeries,
+                        onExpandedChange = { expandedSeries = it },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = seriesInput,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Series") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSeries) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedSeries,
+                            onDismissRequest = { expandedSeries = false }
+                        ) {
+                            seriesOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = { seriesInput = option; expandedSeries = false }
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(value = codeInput, onValueChange = { codeInput = it }, label = { Text("Price (e.g. 45k)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = descriptionInput, onValueChange = { descriptionInput = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth().height(100.dp), maxLines = 3)
+
+                    // Filter Chips
                     Text("Category:", fontSize = 12.sp, color = Color.Gray)
                     Row(Modifier.horizontalScroll(rememberScrollState())) {
                         listOf("Costume", "Wig", "Shoes", "Additional").forEach {
                             FilterChip(selected = categoryInput == it, onClick = { categoryInput = it }, label = { Text(it) }, modifier = Modifier.padding(end = 4.dp))
                         }
                     }
-
                     Text("Status:", fontSize = 12.sp, color = Color.Gray)
                     Row(Modifier.horizontalScroll(rememberScrollState())) {
                         listOf("Ready", "Rented", "Laundry", "Repair").forEach {
@@ -360,26 +380,15 @@ fun InventoryScreen() {
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = { handleSave() },
-                    colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
-                    enabled = !isUploading // Disable tombol pas lagi upload
-                ) {
+                Button(onClick = { handleSave() }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary), enabled = !isUploading) {
                     if (isUploading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
                         Text("Uploading...")
-                    } else {
-                        Text("Save")
-                    }
+                    } else Text("Save")
                 }
             },
-            dismissButton = {
-                TextButton(
-                    onClick = { showDialog = false },
-                    enabled = !isUploading
-                ) { Text("Cancel") }
-            }
+            dismissButton = { TextButton(onClick = { showDialog = false }, enabled = !isUploading) { Text("Cancel") } }
         )
     }
 }
@@ -394,13 +403,8 @@ fun InventoryItemCard(item: InventoryItem, onEditClick: () -> Unit, onDeleteClic
         "Repair" -> Color(0xFFB91C1C) to Color(0xFFFEE2E2)
         else -> Color.Gray to Color.LightGray
     }
-
     val icon = when (item.category) {
-        "Costume" -> Icons.Default.Checkroom
-        "Wig" -> Icons.Default.Face
-        "Shoes" -> Icons.Default.RollerSkating
-        "Additional" -> Icons.Default.Backpack
-        else -> Icons.Outlined.Image
+        "Wig" -> Icons.Default.Face; "Shoes" -> Icons.Default.RollerSkating; else -> Icons.Default.Checkroom
     }
 
     Surface(
@@ -409,11 +413,10 @@ fun InventoryItemCard(item: InventoryItem, onEditClick: () -> Unit, onDeleteClic
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFF3F4F6), modifier = Modifier.size(72.dp)) {
-                if (item.imageUrl.isNotEmpty()) {
+                if (item.imageUrls.isNotEmpty()) {
                     AsyncImage(
-                        model = item.imageUrl,
-                        contentDescription = "Item Image",
-                        contentScale = ContentScale.Crop,
+                        model = item.imageUrls.first(),
+                        contentDescription = null, contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {

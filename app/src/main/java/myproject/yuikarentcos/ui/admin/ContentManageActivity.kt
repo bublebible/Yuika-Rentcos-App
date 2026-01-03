@@ -52,8 +52,14 @@ fun ContentManageScreen() {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
-    var startDate by remember { mutableStateOf("") }
-    var endDate by remember { mutableStateOf("") }
+
+    // String untuk Tampilan UI
+    var startDateString by remember { mutableStateOf("") }
+    var endDateString by remember { mutableStateOf("") }
+
+    // Long (Millis) untuk Logika Validasi & Database
+    var startDateMillis by remember { mutableStateOf<Long?>(null) }
+    var endDateMillis by remember { mutableStateOf<Long?>(null) }
 
     // --- STATE IMAGE PICKER ---
     var bannerUri by remember { mutableStateOf<Uri?>(null) }
@@ -72,6 +78,31 @@ fun ContentManageScreen() {
     fun convertMillisToDate(millis: Long): String {
         val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         return formatter.format(Date(millis))
+    }
+
+    // --- LOGIKA SIMPAN (PUBLISH) ---
+    fun handlePublish() {
+        // 1. Cek Kelengkapan
+        if (title.isEmpty() || startDateMillis == null || endDateMillis == null || bannerUri == null) {
+            Toast.makeText(context, "Mohon lengkapi judul, banner, dan durasi!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 2. Cek Logika Tanggal Sekali Lagi (Safety)
+        if (endDateMillis!! < startDateMillis!!) {
+            Toast.makeText(context, "Error: Tanggal Selesai mundur!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 3. Simulasi Simpan ke Database
+        // Di Real App: Kamu akan menyimpan 'endDateMillis' ke Firestore.
+        // Logic User App: query.whereGreaterThan("expiredAt", System.currentTimeMillis())
+        // Maka banner otomatis hilang dari user jika waktu sekarang > endDateMillis.
+
+        Toast.makeText(context, "Promo Published! Akan hilang otomatis pada $endDateString", Toast.LENGTH_LONG).show()
+
+        // Reset Form (Optional)
+        // title = ""; description = ""; ...
     }
 
     // Background Gradient
@@ -116,7 +147,6 @@ fun ContentManageScreen() {
             SectionHeader(icon = Icons.Default.Image, title = "Banner Image")
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Panggil Komponen Upload Banner
             UploadBannerArea(
                 imageUri = bannerUri,
                 onUploadClick = { galleryLauncher.launch("image/*") }
@@ -175,24 +205,33 @@ fun ContentManageScreen() {
                     CustomTextField(
                         label = "Start Date",
                         placeholder = "DD/MM/YYYY",
-                        value = startDate,
+                        value = startDateString,
                         onValueChange = {}, // Read only
                         leadingIcon = Icons.Default.DateRange,
-                        readOnly = true, // Supaya keyboard gak muncul
-                        onClick = { showStartDatePicker = true } // Trigger Dialog
+                        readOnly = true,
+                        onClick = { showStartDatePicker = true }
                     )
                 }
                 Box(Modifier.weight(1f)) {
                     CustomTextField(
                         label = "End Date",
                         placeholder = "DD/MM/YYYY",
-                        value = endDate,
+                        value = endDateString,
                         onValueChange = {}, // Read only
                         leadingIcon = Icons.Default.DateRange,
                         readOnly = true,
                         onClick = { showEndDatePicker = true }
                     )
                 }
+            }
+            // Pesan Error Kecil jika tanggal invalid (Optional Visual Feedback)
+            if (startDateMillis != null && endDateMillis != null && endDateMillis!! < startDateMillis!!) {
+                Text(
+                    text = "* Tanggal selesai tidak boleh sebelum tanggal mulai",
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -204,8 +243,14 @@ fun ContentManageScreen() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 SectionHeader(icon = Icons.Default.Visibility, title = "Home Screen Preview")
-                Surface(color = PurplePrimary.copy(alpha = 0.1f), shape = RoundedCornerShape(4.dp)) {
-                    Text("LIVE", color = PurplePrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+
+                // Status Live / Expired
+                val isExpired = endDateMillis != null && endDateMillis!! < System.currentTimeMillis()
+                val statusText = if (isExpired) "EXPIRED" else "LIVE"
+                val statusColor = if (isExpired) Color.Red else PurplePrimary
+
+                Surface(color = statusColor.copy(alpha = 0.1f), shape = RoundedCornerShape(4.dp)) {
+                    Text(statusText, color = statusColor, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -221,7 +266,7 @@ fun ContentManageScreen() {
         ) {
             Box(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
                 Button(
-                    onClick = { Toast.makeText(context, "Promo Published!", Toast.LENGTH_SHORT).show() },
+                    onClick = { handlePublish() },
                     colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().height(50.dp)
@@ -239,8 +284,17 @@ fun ContentManageScreen() {
                 onDismissRequest = { showStartDatePicker = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            startDate = convertMillisToDate(it)
+                        datePickerState.selectedDateMillis?.let { selected ->
+                            // Set Start Date
+                            startDateMillis = selected
+                            startDateString = convertMillisToDate(selected)
+
+                            // Reset End Date kalau End Date jadi tidak valid
+                            if (endDateMillis != null && endDateMillis!! < selected) {
+                                endDateMillis = null
+                                endDateString = ""
+                                Toast.makeText(context, "End Date direset karena kurang dari Start Date", Toast.LENGTH_SHORT).show()
+                            }
                         }
                         showStartDatePicker = false
                     }) { Text("OK", color = PurplePrimary) }
@@ -259,10 +313,16 @@ fun ContentManageScreen() {
                 onDismissRequest = { showEndDatePicker = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let {
-                            endDate = convertMillisToDate(it)
+                        datePickerState.selectedDateMillis?.let { selected ->
+                            // LOGIKA VALIDASI MINUS
+                            if (startDateMillis != null && selected < startDateMillis!!) {
+                                Toast.makeText(context, "Tanggal Selesai tidak boleh sebelum Tanggal Mulai!", Toast.LENGTH_LONG).show()
+                            } else {
+                                endDateMillis = selected
+                                endDateString = convertMillisToDate(selected)
+                                showEndDatePicker = false // Tutup dialog cuma kalo valid
+                            }
                         }
-                        showEndDatePicker = false
                     }) { Text("OK", color = PurplePrimary) }
                 },
                 dismissButton = {
@@ -297,7 +357,7 @@ fun UploadBannerArea(imageUri: Uri?, onUploadClick: () -> Unit) {
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White.copy(0.6f))
             .drawBehind {
-                if (imageUri == null) { // Cuma gambar border putus-putus kalau kosong
+                if (imageUri == null) {
                     drawRoundRect(color = Color.LightGray, style = stroke, cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx()))
                 }
             }
@@ -305,14 +365,12 @@ fun UploadBannerArea(imageUri: Uri?, onUploadClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         if (imageUri != null) {
-            // TAMPILKAN FOTO YANG DIPILIH
             AsyncImage(
                 model = imageUri,
                 contentDescription = "Selected Banner",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Tombol Ganti Kecil
             Surface(
                 color = Color.Black.copy(0.6f),
                 shape = CircleShape,
@@ -321,7 +379,6 @@ fun UploadBannerArea(imageUri: Uri?, onUploadClick: () -> Unit) {
                 Icon(Icons.Default.Edit, "Edit", tint = Color.White, modifier = Modifier.padding(8.dp).size(16.dp))
             }
         } else {
-            // TAMPILAN DEFAULT (CLOUD ICON)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier.size(56.dp).clip(CircleShape).background(PurplePrimary.copy(0.1f)),
@@ -357,21 +414,17 @@ fun CustomTextField(
     isSingleLine: Boolean = true,
     height: androidx.compose.ui.unit.Dp = 56.dp,
     leadingIcon: ImageVector? = null,
-    readOnly: Boolean = false, // Parameter baru: Read Only
-    onClick: (() -> Unit)? = null // Parameter baru: Action Klik
+    readOnly: Boolean = false,
+    onClick: (() -> Unit)? = null
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextDark.copy(0.8f))
 
-        // Logic Clickable untuk DatePicker
         val modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = height)
-            .let {
-                if (onClick != null) it.clickable { onClick() } else it
-            }
+            .let { if (onClick != null) it.clickable { onClick() } else it }
 
-        // Bungkus OutlinedTextField dalam Box biar bisa diklik area luarnya juga
         Box(modifier = modifier) {
             OutlinedTextField(
                 value = value,
@@ -379,8 +432,8 @@ fun CustomTextField(
                 placeholder = { Text(placeholder, color = Color.Gray, fontSize = 14.sp) },
                 singleLine = isSingleLine,
                 leadingIcon = if(leadingIcon != null) { { Icon(leadingIcon, null, tint = Color.Gray) } } else null,
-                readOnly = readOnly, // Set ReadOnly biar keyboard gak muncul pas pilih tanggal
-                enabled = true, // Tetap enabled biar warnanya gak abu-abu mati
+                readOnly = readOnly,
+                enabled = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedContainerColor = Color(0xFFF9FAFB),
                     focusedContainerColor = Color.White,
@@ -393,7 +446,6 @@ fun CustomTextField(
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.fillMaxWidth()
             )
-            // Overlay transparan jika readOnly (memastikan klik tembus ke Box)
             if (readOnly) {
                 Box(
                     modifier = Modifier
@@ -415,7 +467,6 @@ fun PreviewCard(title: String, desc: String, imageUri: Uri? = null) {
             .background(Color.White)
             .border(1.dp, Color.LightGray.copy(0.5f), RoundedCornerShape(16.dp))
     ) {
-        // Mock Header Phone
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -431,7 +482,6 @@ fun PreviewCard(title: String, desc: String, imageUri: Uri? = null) {
             Text("USER VIEW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
         }
 
-        // Content Preview
         Box(modifier = Modifier.padding(12.dp)) {
             Box(
                 modifier = Modifier
@@ -441,7 +491,6 @@ fun PreviewCard(title: String, desc: String, imageUri: Uri? = null) {
                     .background(Color.DarkGray)
             ) {
                 if (imageUri != null) {
-                    // Tampilkan Gambar Preview di Card
                     AsyncImage(
                         model = imageUri,
                         contentDescription = null,
@@ -449,7 +498,6 @@ fun PreviewCard(title: String, desc: String, imageUri: Uri? = null) {
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    // Placeholder Image Icon
                     Icon(
                         Icons.Outlined.Image, null,
                         tint = Color.White.copy(0.2f),
@@ -457,14 +505,12 @@ fun PreviewCard(title: String, desc: String, imageUri: Uri? = null) {
                     )
                 }
 
-                // Overlay Gradient
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(0.8f))))
                 )
 
-                // Text Content
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)

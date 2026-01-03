@@ -32,8 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage // Pastikan library Coil sudah ditambahkan di build.gradle
+import coil.compose.AsyncImage
+import com.google.firebase.auth.EmailAuthProvider // PENTING: Untuk Re-Auth
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import myproject.yuikarentcos.ui.GlassWhite
 import myproject.yuikarentcos.ui.PurplePrimary
 import myproject.yuikarentcos.ui.PurpleSoftBgEnd
@@ -48,31 +50,31 @@ fun SettingsScreen() {
     val currentUser = auth.currentUser
 
     // --- STATE DATA ---
-    var userName by remember { mutableStateOf("Admin Yuika") }
+    var userName by remember { mutableStateOf(currentUser?.displayName ?: "Admin Yuika") }
     var userPhone by remember { mutableStateOf("+62 812-3456-7890") }
     var userEmail by remember { mutableStateOf(currentUser?.email ?: "admin@yuikarent.com") }
 
     // --- STATE FOTO PROFIL ---
-    // Menyimpan URI (Alamat file) foto yang dipilih dari galeri
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-
-    // --- LAUNCHER GALERI ---
-    // Ini alat buat ngebuka galeri HP
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        if (uri != null) {
-            imageUri = uri // Simpan foto yang dipilih
-        }
+        if (uri != null) imageUri = uri
     }
 
     // --- STATE DIALOG ---
     var showProfileDialog by remember { mutableStateOf(false) }
+    var showUsernameDialog by remember { mutableStateOf(false) } // Dialog Ganti Nama
     var showPhoneDialog by remember { mutableStateOf(false) }
-    var showEmailDialog by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
 
+    // Variabel Sementara
     var tempInput by remember { mutableStateOf("") }
+
+    // Variabel Khusus Password
+    var oldPasswordInput by remember { mutableStateOf("") }
+    var newPasswordInput by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     val backgroundBrush = Brush.linearGradient(
         colors = listOf(PurpleSoftBgStart, Color(0xFFE1BEE7), PurpleSoftBgEnd),
@@ -105,7 +107,7 @@ fun SettingsScreen() {
                     .clickable { showProfileDialog = true }
                     .padding(24.dp)
             ) {
-                // LOGIKA TAMPILAN FOTO
+                // FOTO
                 Box(
                     modifier = Modifier
                         .size(100.dp)
@@ -114,43 +116,42 @@ fun SettingsScreen() {
                     contentAlignment = Alignment.Center
                 ) {
                     if (imageUri != null) {
-                        // Jika sudah pilih foto, tampilkan Fotonya pakai Coil
-                        AsyncImage(
-                            model = imageUri,
-                            contentDescription = "Profile Photo",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        AsyncImage(model = imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     } else {
-                        // Jika belum, tampilkan Icon Orang
                         Icon(Icons.Default.Person, null, tint = Color.Gray, modifier = Modifier.size(60.dp))
                     }
-
-                    // Badge Edit (Pensil Kecil)
                     Box(Modifier.align(Alignment.BottomEnd).padding(6.dp).clip(CircleShape).background(PurplePrimary).padding(6.dp)) {
                         Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(12.dp))
                     }
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // NAMA & INFO
                 Text(userName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                Text("Tap to edit profile", fontSize = 12.sp, color = Color.Gray)
+                Text(userEmail, fontSize = 12.sp, color = Color.Gray)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // --- LIST MENU ---
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+
+                // 1. Username
+                SettingsItem(Icons.Default.Badge, "Username", userName) {
+                    tempInput = userName
+                    showUsernameDialog = true
+                }
+
+                // 2. Phone
                 SettingsItem(Icons.Default.Phone, "Phone Number", userPhone) {
                     tempInput = userPhone
                     showPhoneDialog = true
                 }
-                SettingsItem(Icons.Default.Email, "Email Address", userEmail) {
-                    tempInput = userEmail
-                    showEmailDialog = true
-                }
+
+                // 3. Password (Ubah Keamanan)
                 SettingsItem(Icons.Default.Lock, "Change Password", "Update security") {
-                    tempInput = ""
+                    oldPasswordInput = ""
+                    newPasswordInput = ""
                     showPasswordDialog = true
                 }
             }
@@ -174,44 +175,57 @@ fun SettingsScreen() {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Log Out", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
-
             Spacer(modifier = Modifier.height(80.dp))
         }
 
         // ================= POP-UP DIALOGS =================
 
-        // 1. DIALOG PROFIL
+        // 1. DIALOG GANTI FOTO
         if (showProfileDialog) {
             AlertDialog(
                 onDismissRequest = { showProfileDialog = false },
                 title = { Text("Ubah Foto Profil") },
                 text = { Text("Ambil foto dari galeri perangkat anda.") },
                 confirmButton = {
-                    Button(onClick = {
-                        // BUKA GALERI
-                        galleryLauncher.launch("image/*")
-                        showProfileDialog = false
-                    }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) {
-                        Text("Buka Galeri")
-                    }
+                    Button(onClick = { galleryLauncher.launch("image/*"); showProfileDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) { Text("Buka Galeri") }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showProfileDialog = false }) { Text("Batal") }
-                }
+                dismissButton = { TextButton(onClick = { showProfileDialog = false }) { Text("Batal") } }
             )
         }
 
-        // 2. DIALOG EDIT NOMOR HP
+        // 2. DIALOG GANTI USERNAME
+        if (showUsernameDialog) {
+            AlertDialog(
+                onDismissRequest = { showUsernameDialog = false },
+                title = { Text("Ganti Username") },
+                text = {
+                    OutlinedTextField(
+                        value = tempInput, onValueChange = { tempInput = it },
+                        label = { Text("Nama Baru") }, singleLine = true
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        // Update UI
+                        userName = tempInput
+                        // Update Firebase Profile
+                        val profileUpdates = UserProfileChangeRequest.Builder().setDisplayName(tempInput).build()
+                        currentUser?.updateProfile(profileUpdates)
+
+                        Toast.makeText(context, "Username diganti!", Toast.LENGTH_SHORT).show()
+                        showUsernameDialog = false
+                    }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) { Text("Simpan") }
+                },
+                dismissButton = { TextButton(onClick = { showUsernameDialog = false }) { Text("Batal") } }
+            )
+        }
+
+        // 3. DIALOG GANTI PHONE
         if (showPhoneDialog) {
             AlertDialog(
                 onDismissRequest = { showPhoneDialog = false },
                 title = { Text("Edit Nomor HP") },
-                text = {
-                    OutlinedTextField(
-                        value = tempInput, onValueChange = { tempInput = it },
-                        label = { Text("Nomor Baru") }, singleLine = true
-                    )
-                },
+                text = { OutlinedTextField(value = tempInput, onValueChange = { tempInput = it }, label = { Text("Nomor Baru") }, singleLine = true) },
                 confirmButton = {
                     Button(onClick = { userPhone = tempInput; showPhoneDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) { Text("Simpan") }
                 },
@@ -219,47 +233,96 @@ fun SettingsScreen() {
             )
         }
 
-        // 3. DIALOG EDIT EMAIL
-        if (showEmailDialog) {
-            AlertDialog(
-                onDismissRequest = { showEmailDialog = false },
-                title = { Text("Edit Email") },
-                text = {
-                    OutlinedTextField(
-                        value = tempInput, onValueChange = { tempInput = it },
-                        label = { Text("Email Baru") }, singleLine = true
-                    )
-                },
-                confirmButton = {
-                    Button(onClick = { userEmail = tempInput; showEmailDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) { Text("Simpan") }
-                },
-                dismissButton = { TextButton(onClick = { showEmailDialog = false }) { Text("Batal") } }
-            )
-        }
-
-        // 4. DIALOG GANTI PASSWORD
+        // 4. DIALOG GANTI PASSWORD (DENGAN RE-AUTH & WARNING)
         if (showPasswordDialog) {
             AlertDialog(
-                onDismissRequest = { showPasswordDialog = false },
+                onDismissRequest = { if (!isLoading) showPasswordDialog = false },
                 title = { Text("Ganti Password") },
                 text = {
-                    OutlinedTextField(
-                        value = tempInput, onValueChange = { tempInput = it },
-                        label = { Text("Password Baru") }, visualTransformation = PasswordVisualTransformation(), singleLine = true
-                    )
-                },
-                confirmButton = {
-                    Button(onClick = {
-                        if (tempInput.isNotEmpty()) {
-                            currentUser?.updatePassword(tempInput)?.addOnCompleteListener { task ->
-                                if (task.isSuccessful) Toast.makeText(context, "Password Berhasil Diganti!", Toast.LENGTH_SHORT).show()
-                                else Toast.makeText(context, "Gagal: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Input Password Lama
+                        OutlinedTextField(
+                            value = oldPasswordInput,
+                            onValueChange = { oldPasswordInput = it },
+                            label = { Text("Password Lama (Konfirmasi)") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // Input Password Baru
+                        OutlinedTextField(
+                            value = newPasswordInput,
+                            onValueChange = { newPasswordInput = it },
+                            label = { Text("Password Baru") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // Peringatan Keamanan
+                        Surface(
+                            color = Color(0xFFFFF3E0),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Warning, null, tint = Color(0xFFF57C00), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "Password minimal 6 karakter. Gunakan kombinasi huruf & angka agar lebih aman.",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFE65100),
+                                    lineHeight = 14.sp
+                                )
                             }
                         }
-                        showPasswordDialog = false
-                    }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) { Text("Ganti") }
+                    }
                 },
-                dismissButton = { TextButton(onClick = { showPasswordDialog = false }) { Text("Batal") } }
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (oldPasswordInput.isEmpty() || newPasswordInput.isEmpty()) {
+                                Toast.makeText(context, "Mohon isi semua kolom", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            if (newPasswordInput.length < 6) {
+                                Toast.makeText(context, "Password baru terlalu pendek!", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            isLoading = true
+
+                            // 1. RE-AUTHENTICATE (Cek Password Lama)
+                            val credential = EmailAuthProvider.getCredential(currentUser?.email!!, oldPasswordInput)
+
+                            currentUser.reauthenticate(credential).addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    // 2. JIKA COCOK, UPDATE PASSWORD BARU
+                                    currentUser.updatePassword(newPasswordInput).addOnCompleteListener { updateTask ->
+                                        isLoading = false
+                                        if (updateTask.isSuccessful) {
+                                            Toast.makeText(context, "Password Berhasil Diganti!", Toast.LENGTH_LONG).show()
+                                            showPasswordDialog = false
+                                        } else {
+                                            Toast.makeText(context, "Gagal Update: ${updateTask.exception?.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                } else {
+                                    isLoading = false
+                                    Toast.makeText(context, "Password Lama Salah!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) Text("Memproses...") else Text("Ganti Password")
+                    }
+                },
+                dismissButton = {
+                    if(!isLoading) TextButton(onClick = { showPasswordDialog = false }) { Text("Batal") }
+                }
             )
         }
     }
